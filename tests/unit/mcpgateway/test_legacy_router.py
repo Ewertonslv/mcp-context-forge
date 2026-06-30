@@ -78,7 +78,22 @@ def _required_kwargs(**extras) -> dict:
 
 
 def _route_paths(router: APIRouter) -> list[str]:
-    return [r.path for r in router.routes]
+    paths: list[str] = []
+
+    def visit(routes, prefix: str = "") -> None:
+        for route in routes:
+            path = getattr(route, "path", None)
+            if path is not None:
+                paths.append(f"{prefix}{path}")
+                continue
+
+            original_router = getattr(route, "original_router", None)
+            include_context = getattr(route, "include_context", None)
+            if original_router is not None and include_context is not None:
+                visit(original_router.routes, f"{prefix}{include_context.prefix}")
+
+    visit(router.routes)
+    return paths
 
 
 def _make_mock_router_module(sentinel_path: str) -> ModuleType:

@@ -16,6 +16,31 @@ from mcpgateway.config import settings
 from mcpgateway.middleware.deprecation import _LEGACY_PREFIXES
 
 
+def iter_route_contexts(router: APIRouter):
+    """Yield route/path/dependency triples, flattening included-router wrappers."""
+
+    def visit(routes, prefix: str = "", dependencies=()):
+        for route in routes:
+            path = getattr(route, "path", None)
+            if path is not None:
+                yield route, f"{prefix}{path}", dependencies
+                continue
+
+            original_router = getattr(route, "original_router", None)
+            include_context = getattr(route, "include_context", None)
+            if original_router is not None and include_context is not None:
+                include_dependencies = tuple(getattr(include_context, "dependencies", []) or [])
+                yield from visit(original_router.routes, f"{prefix}{include_context.prefix}", dependencies + include_dependencies)
+
+    yield from visit(router.routes)
+
+
+def iter_route_paths(router: APIRouter):
+    """Yield route/path pairs, flattening FastAPI included-router wrappers."""
+    for route, path, _dependencies in iter_route_contexts(router):
+        yield route, path
+
+
 def extract_router_prefixes(router: APIRouter) -> set[str]:
     """Extract all route prefixes from an assembled router.
 
@@ -26,8 +51,7 @@ def extract_router_prefixes(router: APIRouter) -> set[str]:
         Set of unique prefixes (e.g., {"/tools", "/servers"}).
     """
     prefixes = set()
-    for route in router.routes:
-        path = route.path
+    for _, path in iter_route_paths(router):
         # Extract first path segment as prefix
         if path.startswith("/"):
             parts = path.split("/")
@@ -211,8 +235,10 @@ def test_llm_admin_router_csrf_dependency():
 
     # Collect all dependency callables across routes under /admin/llm
     llm_admin_route_deps: list = []
-    for route in test_router.routes:
-        if hasattr(route, "path") and route.path.startswith("/admin/llm"):
+    for route, path, inherited_dependencies in iter_route_contexts(test_router):
+        if path.startswith("/admin/llm"):
+            for dep in inherited_dependencies:
+                llm_admin_route_deps.append(dep.dependency)
             for dep in getattr(route, "dependencies", []):
                 llm_admin_route_deps.append(dep.dependency)
 

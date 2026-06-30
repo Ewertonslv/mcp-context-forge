@@ -249,10 +249,28 @@ def test_v1_prefix_does_not_produce_rfc_violation():
 
     from mcpgateway.routers.well_known import admin_router
 
+    def route_paths(router: APIRouter) -> list[str]:
+        paths: list[str] = []
+
+        def visit(routes, prefix: str = "") -> None:
+            for route in routes:
+                path = getattr(route, "path", None)
+                if path is not None:
+                    paths.append(f"{prefix}{path}")
+                    continue
+
+                original_router = getattr(route, "original_router", None)
+                include_context = getattr(route, "include_context", None)
+                if original_router is not None and include_context is not None:
+                    visit(original_router.routes, f"{prefix}{include_context.prefix}")
+
+        visit(router.routes)
+        return paths
+
     v1_router = APIRouter(prefix="/v1")
     v1_router.include_router(admin_router)
 
-    final_paths = [route.path for route in v1_router.routes]
+    final_paths = route_paths(v1_router)
     rfc_violations = [p for p in final_paths if "/.well-known" in p]
     assert rfc_violations == [], f"Including admin_router in /v1 creates RFC 8615 violating paths: {rfc_violations}"
 
