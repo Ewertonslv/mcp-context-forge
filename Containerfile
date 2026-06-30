@@ -21,8 +21,8 @@
 #     --build-arg UBI_MINIMAL=<internal-registry>/ubi9/ubi-minimal:latest \
 #     .
 ###########################
-ARG NODEJS_IMAGE=registry.access.redhat.com/ubi10/nodejs-24:10.1-1778561468
-ARG UBI_MINIMAL=registry.access.redhat.com/ubi10/ubi-minimal:10.1-1778576723
+ARG NODEJS_IMAGE=registry.access.redhat.com/ubi10/nodejs-24:10.2-1782798957
+ARG UBI_MINIMAL=registry.access.redhat.com/ubi10/ubi-minimal:10.2-1782798957
 
 ###########################
 # Frontend builder stage

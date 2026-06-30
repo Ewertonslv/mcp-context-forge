@@ -17,4 +17,20 @@ ignore:
     package:
       name: python3-libs
   - vulnerability: CVE-2026-54369
+    package:
+      name: (lib)?acl
   - vulnerability: CVE-2026-54371
+    package:
+      name: (lib)?attr
+  - vulnerability: CVE-2026-41292
+    package:
+      name: unbound-libs
+  - vulnerability: CVE-2026-42534
+    package:
+      name: unbound-libs
+  - vulnerability: CVE-2026-44390
+    package:
+      name: unbound-libs
+  - vulnerability: CVE-2026-8643
+    package:
+      name: python3-pip-wheel
